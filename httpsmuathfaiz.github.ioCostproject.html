@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concrete & Steel Cost Estimator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0e12;
+    --surface: #16181f;
+    --surface2: #1e212b;
+    --border: #2a2d3a;
+    --accent: #e8c547;
+    --accent2: #5b8cff;
+    --accent3: #ff6b6b;
+    --text: #f0f0f0;
+    --muted: #7a7f96;
+    --concrete: #b8a898;
+    --steel: #7eb8d4;
+    --rebar: #c87941;
+    --green: #4fc97e;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 48px 0 32px;
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(232,197,71,.12);
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 76px);
+    line-height: .95;
+    letter-spacing: .02em;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 9px 18px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .tab:hover { border-color: var(--accent); color: var(--accent); }
+  .tab.active { background: var(--accent); color: #0d0e12; border-color: var(--accent); font-weight: 600; }
+
+  /* ── Panel ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: .06em;
+    margin-bottom: 4px;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Form grid ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'DM Mono', monospace;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+
+  .field select option { background: var(--surface2); }
+
+  /* ── Button ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: var(--accent);
+    color: #0d0e12;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+
+  .btn:hover { opacity: .9; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Result box ── */
+  .results {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 22px;
+    display: none;
+  }
+  .results.show { display: block; }
+
+  .results-header {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .results-body { padding: 22px; }
+
+  .step-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn .3s ease both;
+  }
+  .step-row:last-child { border-bottom: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-num {
+    width: 26px;
+    height: 26px;
+    background: rgba(232,197,71,.15);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 2px;
+  }
+
+  .step-value {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .step-formula {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 2px;
+    opacity: .75;
+  }
+
+  /* ── Summary total ── */
+  .total-box {
+    margin-top: 16px;
+    background: rgba(232,197,71,.08);
+    border: 1px solid rgba(232,197,71,.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .total-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .total-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: .03em;
+    color: var(--accent);
+  }
+
+  /* ── Grand summary table ── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .summary-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.04);
+    vertical-align: middle;
+  }
+
+  .summary-table tr:last-child td { border-bottom: none; }
+
+  .summary-table .item-name { font-weight: 500; }
+  .summary-table .num { font-family: 'DM Mono', monospace; text-align: right; }
+  .summary-table .total-row td {
+    font-weight: 600;
+    color: var(--accent);
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .badge.concrete { background: rgba(184,168,152,.15); color: var(--concrete); }
+  .badge.rebar    { background: rgba(200,121,65,.15);  color: var(--rebar); }
+  .badge.steel    { background: rgba(126,184,212,.15); color: var(--steel); }
+
+  /* ── Breakdown chart ── */
+  .bar-chart { margin-top: 24px; }
+  .bar-row { margin-bottom: 12px; }
+  .bar-meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+  .bar-label { color: var(--muted); font-family: 'DM Mono', monospace; }
+  .bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+
+  /* ── Checklist ── */
+  .checklist { list-style: none; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .check-icon { color: var(--green); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Info pills ── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .info-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .info-pill .label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+  .info-pill .val { font-size: 18px; font-weight: 600; }
+  .info-pill.c .val { color: var(--concrete); }
+  .info-pill.r .val { color: var(--rebar); }
+  .info-pill.s .val { color: var(--steel); }
+
+  /* ── Formula highlight ── */
+  .formula-block {
+    background: rgba(91,140,255,.07);
+    border-left: 3px solid var(--accent2);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+    margin: 16px 0;
+  }
+
+  /* divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  /* note */
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    padding: 10px 14px;
+    background: rgba(255,255,255,.03);
+    border-radius: 6px;
+    margin-top: 14px;
+    line-height: 1.6;
+  }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .total-value { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <header>
+    <div>
+      <div class="header-tag">Chapter 10 &amp; 12 · Construction Estimating</div>
+      <h1>Concrete &amp; <span>Steel</span><br>Cost Estimator</h1>
+      <p class="subtitle">Interactive solver for concrete quantity takeoff, rebar cost, and structural steel cost estimating</p>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('concrete')">🪨 Concrete</button>
+    <button class="tab" onclick="switchTab('rebar')">🔩 Reinforcing Steel</button>
+    <button class="tab" onclick="switchTab('structural')">🏗 Structural Steel</button>
+    <button class="tab" onclick="switchTab('summary')">📊 Summary</button>
+  </div>
+
+  <!-- ══════════════════════ CONCRETE ══════════════════════ -->
+  <div class="panel active" id="tab-concrete">
+    <div class="card">
+      <div class="card-title" style="color: var(--concrete)">Concrete Quantity Takeoff</div>
+      <div class="card-sub">Based on the continuous footing example (Chapter 10)</div>
+
+      <div class="formula-block">
+        Volume (cf) = L × W × T &nbsp;|&nbsp; CY = cf ÷ 27 &nbsp;|&nbsp; Order = CY × (1 + waste%)
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Length (ft)</label>
+          <input type="number" id="c_length" value="337.3" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label>Width — ft part</label>
+          <input type="number" id="c_width_ft" value="3" min="0">
+        </div>
+        <div class="field">
+          <label>Width — in part</label>
+          <input type="number" id="c_width_in" value="2" min="0" max="11">
+        </div>
+        <div class="field">
+          <label>Height / Thickness (ft)</label>
+          <input type="number" id="c_height" value="1.0" step="0.1" min="0">
+        </div>
+        <div class="field">
+          <label>Element type (waste)</label>
+          <select id="c_waste_type">
+            <option value="0.05" selected>Footings / Beams / Columns (5%)</option>
+            <option value="0.08">Slabs on Grade (8%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Material price ($/CY)</label>
+          <input type="number" id="c_price" value="120" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Labor productivity (LH/CY)</label>
+          <input type="number" id="c_lh_cy" value="0.4" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Labor rate ($/hr)</label>
+          <input type="number" id="c_rate" value="13.50" step="0.25" min="0">
+        </div>
+      </div>
+
+      <button class="btn" onclick="calcConcrete()">▶ Calculate</button>
+      <button class="btn secondary" onclick="resetConcrete()">Reset</button>
+
+      <div class="results" id="res-concrete">
+        <div class="results-header">⚙ Step-by-Step Solution</div>
+        <div class="results-body" id="res-concrete-body"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="font-size:16px; font-family:'DM Sans'">Reference: Waste Factors</div>
+      <div class="info-grid" style="margin-bottom:0">
+        <div class="info-pill c"><div class="label">Footings / Beams / Columns</div><div class="val">5%</div></div>
+        <div class="info-pill c"><div class="label">Slabs on Grade</div><div class="val">8%</div></div>
+        <div class="info-pill c"><div class="label">Small holes / rebar displacement</div><div class="val">No deduction</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ REBAR ══════════════════════ -->
+  <div class="panel" id="tab-rebar">
+    <div class="card">
+      <div class="card-title" style="color: var(--rebar)">Rebar Quantity &amp; Cost</div>
+      <div class="card-sub">Based on the #5 rebar Side A example (Chapter 10)</div>
+
+      <div class="formula-block">
+        Weight (lb) = LF × lb/ft &nbsp;|&nbsp; Cost = lb × $/lb &nbsp;|&nbsp; Labor = (lb ÷ 2000) × LH/ton × $/hr
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Bar Size</label>
+          <select id="r_barsize">
+            <option value="0.376">#3 (0.376 lb/ft)</option>
+            <option value="0.668">#4 (0.668 lb/ft)</option>
+            <option value="1.043" selected>#5 (1.043 lb/ft)</option>
+            <option value="1.502">#6 (1.502 lb/ft)</option>
+            <option value="2.044">#7 (2.044 lb/ft)</option>
+            <option value="2.670">#8 (2.670 lb/ft)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Footing short bars LF (after waste)</label>
+          <input type="number" id="r_footing_short_lf" value="133" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Footing long bars LF (after waste)</label>
+          <input type="number" id="r_footing_long_lf" value="165" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Wall vertical LF (before waste)</label>
+          <input type="number" id="r_wall_vert" value="143" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Wall horizontal LF (before waste)</label>
+          <input type="number" id="r_wall_horiz" value="231" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Dowels LF (before waste)</label>
+          <input type="number" id="r_dowels" value="129" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Footing waste %</label>
+          <input type="number" id="r_waste_f" value="10" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Wall &amp; dowel waste %</label>
+          <input type="number" id="r_waste_w" value="10" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Dowel waste %</label>
+          <input type="number" id="r_waste_d" value="5" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Material price ($/lb)</label>
+          <input type="number" id="r_price" value="0.55" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Labor productivity (LH/ton)</label>
+          <input type="number" id="r_lh_ton" value="15" step="0.5" min="0">
+        </div>
+        <div class="field">
+          <label>Labor rate ($/hr)</label>
+          <input type="number" id="r_rate" value="14.25" step="0.25" min="0">
+        </div>
+      </div>
+
+      <button class="btn" onclick="calcRebar()">▶ Calculate</button>
+      <button class="btn secondary" onclick="resetRebar()">Reset</button>
+
+      <div class="results" id="res-rebar">
+        <div class="results-header">⚙ Step-by-Step Solution</div>
+        <div class="results-body" id="res-rebar-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ STRUCTURAL STEEL ══════════════════════ -->
+  <div class="panel" id="tab-structural">
+    <div class="card">
+      <div class="card-title" style="color: var(--steel)">Structural Steel Takeoff</div>
+      <div class="card-sub">Based on the W12×30 beam example (Chapter 12)</div>
+
+      <div class="formula-block">
+        Weight = Length × lb/ft × Quantity &nbsp;|&nbsp; Tons = lb ÷ 2,000 &nbsp;|&nbsp; Cost = tons × $/ton
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label>Beam weight (lb/ft) — e.g. W12×30 → 30</label>
+          <input type="number" id="s_lb_ft" value="30" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Length — ft part</label>
+          <input type="number" id="s_len_ft" value="16" min="0">
+        </div>
+        <div class="field">
+          <label>Length — in part</label>
+          <input type="number" id="s_len_in" value="2" min="0" max="11">
+        </div>
+        <div class="field">
+          <label>Number of beams</label>
+          <input type="number" id="s_qty" value="3" step="1" min="1">
+        </div>
+        <div class="field">
+          <label>Material price ($/ton)</label>
+          <input type="number" id="s_price" value="1800" step="50" min="0">
+        </div>
+      </div>
+
+      <button class="btn" onclick="calcSteel()">▶ Calculate</button>
+      <button class="btn secondary" onclick="resetSteel()">Reset</button>
+
+      <div class="results" id="res-steel">
+        <div class="results-header">⚙ Step-by-Step Solution</div>
+        <div class="results-body" id="res-steel-body"></div>
+      </div>
+    </div>
+
+    <div class="note">
+      ⚠ Structural steel unit prices typically include shop fabrication and erection conditions. Labor (crane, erection) is priced separately by the erector — mark "not included" and add a line item.
+    </div>
+  </div>
+
+  <!-- ══════════════════════ SUMMARY ══════════════════════ -->
+  <div class="panel" id="tab-summary">
+    <div class="card">
+      <div class="card-title">Project Cost Summary</div>
+      <div class="card-sub">Auto-populated from your calculations above</div>
+      <div id="summary-content">
+        <p style="color:var(--muted); font-size:14px;">Run at least one calculation to see the summary.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="font-size:16px; font-family:'DM Sans'">Estimator Checklist</div>
+      <ul class="checklist">
+        <li><span class="check-icon">✓</span> Convert all dimensions — inches to feet, cubic feet to cubic yards</li>
+        <li><span class="check-icon">✓</span> Add correct waste factor (5% footings, 8% slabs; 1–10% rebar)</li>
+        <li><span class="check-icon">✓</span> Separate items by type (footings, walls, slabs, bar size, location)</li>
+        <li><span class="check-icon">✓</span> Apply labor productivity in LH/CY for concrete, LH/ton for rebar</li>
+        <li><span class="check-icon">✓</span> Replace assumed unit prices with actual supplier quotes before final bid</li>
+        <li><span class="check-icon">✓</span> Keep all assumptions visible for reviewer to update quickly</li>
+        <li><span class="check-icon">✓</span> Include equipment, forms, crane, and erection as separate line items if required</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ── State store ──
+const state = { concrete: null, rebar: null, steel: null };
+
+function fmt(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function fmtInt(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+
+// ── Tab switching ──
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const idx = ['concrete','rebar','structural','summary'].indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-' + (name === 'summary' ? 'summary' : name === 'structural' ? 'structural' : name)).classList.add('active');
+
+  if (name === 'summary') renderSummary();
+}
+
+// ── Step builder ──
+function makeStep(num, label, value, formula, color) {
+  const delay = (num-1) * 0.06;
+  return `
+    <div class="step-row" style="animation-delay:${delay}s">
+      <div class="step-num">${num}</div>
+      <div class="step-content">
+        <div class="step-label">${label}</div>
+        <div class="step-value" style="color:${color||'var(--text)'}">${value}</div>
+        ${formula ? `<div class="step-formula">${formula}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── CONCRETE ──
+function calcConcrete() {
+  const L   = parseFloat(document.getElementById('c_length').value);
+  const wft = parseFloat(document.getElementById('c_width_ft').value);
+  const win = parseFloat(document.getElementById('c_width_in').value);
+  const H   = parseFloat(document.getElementById('c_height').value);
+  const wf  = parseFloat(document.getElementById('c_waste_type').value);
+  const price = parseFloat(document.getElementById('c_price').value);
+  const lhcy  = parseFloat(document.getElementById('c_lh_cy').value);
+  const rate  = parseFloat(document.getElementById('c_rate').value);
+
+  const W = wft + win/12;
+  const cf = L * W * H;
+  const cy = cf / 27;
+  const cyWaste = cy * (1 + wf);
+  const cyOrder = Math.ceil(cyWaste);
+  const matCost = cyOrder * price;
+  const lh = cyOrder * lhcy;
+  const labCost = lh * rate;
+  const total = matCost + labCost;
+
+  state.concrete = { qty: cyOrder, mat: matCost, lab: labCost, total };
+
+  const wasteLabel = wf === 0.05 ? '5% (footings)' : '8% (slabs)';
+  let html = makeStep(1,'Convert width to decimal feet', `${wft}′${win}″ = ${W.toFixed(3)} ft`, `${wft} + ${win}/12`, 'var(--concrete)');
+  html += makeStep(2,'Cross-section area', `${(W * H).toFixed(3)} sf`, `${W.toFixed(3)} × ${H} ft`, 'var(--text)');
+  html += makeStep(3,'Volume in cubic feet', `${fmt(cf)} cf`, `${W.toFixed(3)} × ${H} × ${L} ft`, 'var(--text)');
+  html += makeStep(4,'Convert to cubic yards', `${fmt(cy)} CY`, `${fmt(cf)} ÷ 27`, 'var(--text)');
+  html += makeStep(5,`Add waste factor (${wasteLabel})`, `${fmt(cyWaste)} CY`, `${fmt(cy)} × ${(1+wf).toFixed(2)}`, 'var(--text)');
+  html += makeStep(6,'Round up to order quantity', `${cyOrder} CY`, 'ceil('+fmt(cyWaste)+')', 'var(--concrete)');
+  html += makeStep(7,'Material cost', `$${fmt(matCost)}`, `${cyOrder} CY × $${price}/CY`, 'var(--accent)');
+  html += makeStep(8,'Labor hours', `${fmt(lh)} LH`, `${cyOrder} CY × ${lhcy} LH/CY`, 'var(--text)');
+  html += makeStep(9,'Labor cost', `$${fmt(labCost)}`, `${fmt(lh)} LH × $${rate}/hr`, 'var(--accent)');
+  html += `<div class="total-box">
+    <div><div class="total-label">Total Concrete Cost</div><div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">Material + Labor</div></div>
+    <div class="total-value">$${fmt(total)}</div>
+  </div>`;
+
+  const box = document.getElementById('res-concrete');
+  document.getElementById('res-concrete-body').innerHTML = html;
+  box.classList.add('show');
+}
+
+function resetConcrete() {
+  document.getElementById('c_length').value = '337.3';
+  document.getElementById('c_width_ft').value = '3';
+  document.getElementById('c_width_in').value = '2';
+  document.getElementById('c_height').value = '1.0';
+  document.getElementById('c_waste_type').value = '0.05';
+  document.getElementById('c_price').value = '120';
+  document.getElementById('c_lh_cy').value = '0.4';
+  document.getElementById('c_rate').value = '13.50';
+  document.getElementById('res-concrete').classList.remove('show');
+  state.concrete = null;
+}
+
+// ── REBAR ──
+function calcRebar() {
+  const wpp = parseFloat(document.getElementById('r_barsize').value);
+  const fshort = parseFloat(document.getElementById('r_footing_short_lf').value);
+  const flong  = parseFloat(document.getElementById('r_footing_long_lf').value);
+  const wv    = parseFloat(document.getElementById('r_wall_vert').value);
+  const wh    = parseFloat(document.getElementById('r_wall_horiz').value);
+  const dw    = parseFloat(document.getElementById('r_dowels').value);
+  const wfp   = parseFloat(document.getElementById('r_waste_f').value) / 100;
+  const wwp   = parseFloat(document.getElementById('r_waste_w').value) / 100;
+  const wdp   = parseFloat(document.getElementById('r_waste_d').value) / 100;
+  const price = parseFloat(document.getElementById('r_price').value);
+  const lhton = parseFloat(document.getElementById('r_lh_ton').value);
+  const rate  = parseFloat(document.getElementById('r_rate').value);
+
+  // weights
+  const footingSubRaw = (fshort + flong) * wpp;
+  const footingFinal = footingSubRaw * (1 + wfp);
+  const wallVertFinal = wv * wpp * (1 + wwp);
+  const wallHorizFinal = wh * wpp * (1 + wwp);
+  const dowelsFinal = dw * wpp * (1 + wdp);
+  const totalLb = footingFinal + wallVertFinal + wallHorizFinal + dowelsFinal;
+  const tons = totalLb / 2000;
+  const matCost = totalLb * price;
+  const lh = tons * lhton;
+  const labCost = lh * rate;
+  const total = matCost + labCost;
+
+  state.rebar = { qty: totalLb.toFixed(0) + ' lb', mat: matCost, lab: labCost, total };
+
+  let html = makeStep(1,'Unit weight', `${wpp} lb/lf`, 'Selected bar size', 'var(--rebar)');
+  html += makeStep(2,'Footing bars weight (before waste)', `${fmt(footingSubRaw)} lb`, `(${fshort}+${flong}) LF × ${wpp} lb/lf`, 'var(--text)');
+  html += makeStep(3,`Footing subtotal + ${(wfp*100).toFixed(0)}% waste`, `${fmt(footingFinal)} lb`, `${fmt(footingSubRaw)} × ${(1+wfp).toFixed(2)}`, 'var(--text)');
+  html += makeStep(4,`Wall vertical + ${(wwp*100).toFixed(0)}% waste`, `${fmt(wallVertFinal)} lb`, `${wv} LF × ${wpp} × ${(1+wwp).toFixed(2)}`, 'var(--text)');
+  html += makeStep(5,`Wall horizontal + ${(wwp*100).toFixed(0)}% waste`, `${fmt(wallHorizFinal)} lb`, `${wh} LF × ${wpp} × ${(1+wwp).toFixed(2)}`, 'var(--text)');
+  html += makeStep(6,`Dowels + ${(wdp*100).toFixed(0)}% waste`, `${fmt(dowelsFinal)} lb`, `${dw} LF × ${wpp} × ${(1+wdp).toFixed(2)}`, 'var(--text)');
+  html += makeStep(7,'Total rebar weight', `${fmt(totalLb)} lb = ${fmt(tons)} tons`, 'Sum of all components', 'var(--rebar)');
+  html += makeStep(8,'Material cost', `$${fmt(matCost)}`, `${fmt(totalLb)} lb × $${price}/lb`, 'var(--accent)');
+  html += makeStep(9,'Labor hours', `${fmt(lh)} LH`, `${fmt(tons)} tons × ${lhton} LH/ton`, 'var(--text)');
+  html += makeStep(10,'Labor cost', `$${fmt(labCost)}`, `${fmt(lh)} LH × $${rate}/hr`, 'var(--accent)');
+  html += `<div class="total-box">
+    <div><div class="total-label">Total Rebar Cost</div><div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">Material + Labor</div></div>
+    <div class="total-value">$${fmt(total)}</div>
+  </div>`;
+
+  const box = document.getElementById('res-rebar');
+  document.getElementById('res-rebar-body').innerHTML = html;
+  box.classList.add('show');
+}
+
+function resetRebar() {
+  document.getElementById('r_barsize').value = '1.043';
+  ['r_footing_short_lf','r_footing_long_lf','r_wall_vert','r_wall_horiz','r_dowels'].forEach((id,i) => {
+    document.getElementById(id).value = [133,165,143,231,129][i];
+  });
+  document.getElementById('r_waste_f').value = '10';
+  document.getElementById('r_waste_w').value = '10';
+  document.getElementById('r_waste_d').value = '5';
+  document.getElementById('r_price').value = '0.55';
+  document.getElementById('r_lh_ton').value = '15';
+  document.getElementById('r_rate').value = '14.25';
+  document.getElementById('res-rebar').classList.remove('show');
+  state.rebar = null;
+}
+
+// ── STRUCTURAL STEEL ──
+function calcSteel() {
+  const lbft  = parseFloat(document.getElementById('s_lb_ft').value);
+  const lft   = parseFloat(document.getElementById('s_len_ft').value);
+  const lin   = parseFloat(document.getElementById('s_len_in').value);
+  const qty   = parseFloat(document.getElementById('s_qty').value);
+  const price = parseFloat(document.getElementById('s_price').value);
+
+  const len = lft + lin/12;
+  const lbEach = len * lbft;
+  const totalLb = lbEach * qty;
+  const tons = totalLb / 2000;
+  const matCost = tons * price;
+
+  state.steel = { qty: fmt(tons) + ' tons', mat: matCost, lab: 0, total: matCost, laborNote: 'Not included' };
+
+  let html = makeStep(1,'Convert length', `${lft}′${lin}″ = ${fmt(len)} ft`, `${lft} + ${lin}/12`, 'var(--steel)');
+  html += makeStep(2,'Weight per beam', `${fmt(lbEach)} lb`, `${fmt(len)} ft × ${lbft} lb/ft`, 'var(--text)');
+  html += makeStep(3,'Total weight', `${fmt(totalLb)} lb`, `${fmt(lbEach)} lb × ${qty} beams`, 'var(--steel)');
+  html += makeStep(4,'Convert to tons', `${fmt(tons)} tons`, `${fmt(totalLb)} lb ÷ 2,000`, 'var(--text)');
+  html += makeStep(5,'Material cost', `$${fmt(matCost)}`, `${fmt(tons)} tons × $${fmtInt(price)}/ton`, 'var(--accent)');
+  html += `<div class="total-box">
+    <div><div class="total-label">Structural Steel Material Cost</div><div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px">Erection/labor not included</div></div>
+    <div class="total-value">$${fmt(matCost)}</div>
+  </div>`;
+
+  const box = document.getElementById('res-steel');
+  document.getElementById('res-steel-body').innerHTML = html;
+  box.classList.add('show');
+}
+
+function resetSteel() {
+  document.getElementById('s_lb_ft').value = '30';
+  document.getElementById('s_len_ft').value = '16';
+  document.getElementById('s_len_in').value = '2';
+  document.getElementById('s_qty').value = '3';
+  document.getElementById('s_price').value = '1800';
+  document.getElementById('res-steel').classList.remove('show');
+  state.steel = null;
+}
+
+// ── SUMMARY ──
+function renderSummary() {
+  const any = state.concrete || state.rebar || state.steel;
+  if (!any) return;
+
+  let rows = '';
+  let grandMat = 0, grandLab = 0, grandTot = 0;
+  const bars = [];
+
+  if (state.concrete) {
+    const d = state.concrete;
+    rows += `<tr>
+      <td class="item-name"><span class="badge concrete">CONCRETE</span><br>Continuous Footing</td>
+      <td class="num">${d.qty} CY</td>
+      <td class="num">$${fmt(d.mat)}</td>
+      <td class="num">$${fmt(d.lab)}</td>
+      <td class="num">$${fmt(d.total)}</td>
+    </tr>`;
+    grandMat += d.mat; grandLab += d.lab; grandTot += d.total;
+    bars.push({ label: 'Concrete', val: d.total, color: 'var(--concrete)' });
+  }
+
+  if (state.rebar) {
+    const d = state.rebar;
+    rows += `<tr>
+      <td class="item-name"><span class="badge rebar">REBAR</span><br>#5 Reinforcing Steel</td>
+      <td class="num">${d.qty}</td>
+      <td class="num">$${fmt(d.mat)}</td>
+      <td class="num">$${fmt(d.lab)}</td>
+      <td class="num">$${fmt(d.total)}</td>
+    </tr>`;
+    grandMat += d.mat; grandLab += d.lab; grandTot += d.total;
+    bars.push({ label: 'Rebar', val: d.total, color: 'var(--rebar)' });
+  }
+
+  if (state.steel) {
+    const d = state.steel;
+    rows += `<tr>
+      <td class="item-name"><span class="badge steel">STEEL</span><br>W-Shape Structural Beams</td>
+      <td class="num">${d.qty}</td>
+      <td class="num">$${fmt(d.mat)}</td>
+      <td class="num" style="color:var(--muted)">Not incl.</td>
+      <td class="num">$${fmt(d.total)}</td>
+    </tr>`;
+    grandMat += d.mat; grandTot += d.total;
+    bars.push({ label: 'Struct. Steel', val: d.total, color: 'var(--steel)' });
+  }
+
+  const maxBar = Math.max(...bars.map(b => b.val));
+  let barHtml = bars.map(b => `
+    <div class="bar-row">
+      <div class="bar-meta"><span class="bar-label">${b.label}</span><span style="font-family:'DM Mono',monospace;font-size:12px">$${fmt(b.val)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(b.val/maxBar*100).toFixed(1)}%;background:${b.color}"></div></div>
+    </div>`).join('');
+
+  document.getElementById('summary-content').innerHTML = `
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th style="text-align:right">Quantity</th>
+          <th style="text-align:right">Material</th>
+          <th style="text-align:right">Labor</th>
+          <th style="text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="total-row">
+          <td>TOTAL ESTIMATE</td>
+          <td class="num">—</td>
+          <td class="num">$${fmt(grandMat)}</td>
+          <td class="num">$${fmt(grandLab)}</td>
+          <td class="num">$${fmt(grandTot)}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="divider"></div>
+    <div style="font-family:'Bebas Neue';font-size:18px;letter-spacing:.06em;margin-bottom:12px;color:var(--muted)">Cost Breakdown</div>
+    <div class="bar-chart">${barHtml}</div>
+    <div class="note">⚠ Replace assumed unit rates with actual supplier quotes. Add formwork, equipment, crane, and erection as separate line items where required.</div>
+  `;
+}
+</script>
+</body>
+</html>
